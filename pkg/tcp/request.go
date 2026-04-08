@@ -59,7 +59,18 @@ func Do(req *http.Request) (*http.Response, error) {
 
 			tlsConn := tls.Client(conn, conf)
 			if err = tlsConn.Handshake(); err != nil {
-				return nil, err
+				// retry with TLS 1.2 for cameras that don't support TLS 1.3
+				_ = tlsConn.Close()
+				conn, err = dial(ctx, network, addr)
+				if err != nil {
+					return nil, err
+				}
+				conf12 := conf.Clone()
+				conf12.MaxVersion = tls.VersionTLS12
+				tlsConn = tls.Client(conn, conf12)
+				if err = tlsConn.Handshake(); err != nil {
+					return nil, err
+				}
 			}
 
 			if pconn, ok := ctx.Value(connKey).(*net.Conn); ok {
