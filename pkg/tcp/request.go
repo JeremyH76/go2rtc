@@ -15,6 +15,8 @@ import (
 
 var log zerolog.Logger
 
+func SetLogger(l zerolog.Logger) { log = l }
+
 // Do - http.Client with support Digest Authorization
 func Do(req *http.Request) (*http.Response, error) {
 	log.Trace().Str("method", req.Method).Str("url", req.URL.String()).Msg("[tcp] http request")

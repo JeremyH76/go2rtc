@@ -34,6 +34,7 @@ func Init() {
 	app.Info["rtsp"] = conf.Mod
 
 	log = app.GetLogger("rtsp")
+	tcp.SetLogger(app.GetLogger("tcp"))
 
 	// RTSP client support
 	streams.HandleFunc("rtsp", rtspHandler)

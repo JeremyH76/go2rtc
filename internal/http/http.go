@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/AlexxIT/go2rtc/internal/app"
 	"github.com/AlexxIT/go2rtc/internal/api"
 	"github.com/AlexxIT/go2rtc/internal/streams"
 	"github.com/AlexxIT/go2rtc/pkg/core"
@@ -19,6 +20,8 @@ import (
 )
 
 func Init() {
+	tcp.SetLogger(app.GetLogger("tcp"))
+
 	streams.HandleFunc("http", handleHTTP)
 	streams.HandleFunc("https", handleHTTP)
 	streams.HandleFunc("httpx", handleHTTP)
