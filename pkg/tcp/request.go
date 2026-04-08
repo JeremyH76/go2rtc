@@ -10,7 +10,10 @@ import (
 	"strings"
 
 	"github.com/AlexxIT/go2rtc/pkg/core"
+	"github.com/rs/zerolog"
 )
+
+var log zerolog.Logger
 
 // Do - http.Client with support Digest Authorization
 func Do(req *http.Request) (*http.Response, error) {
@@ -58,20 +61,24 @@ func Do(req *http.Request) (*http.Response, error) {
 			}
 
 			tlsConn := tls.Client(conn, conf)
-			if err = tlsConn.Handshake(); err != nil {
-				// retry with TLS 1.2 for cameras that don't support TLS 1.3
-				_ = tlsConn.Close()
-				conn, err = dial(ctx, network, addr)
-				if err != nil {
-					return nil, err
-				}
-				conf12 := conf.Clone()
-				conf12.MaxVersion = tls.VersionTLS12
-				tlsConn = tls.Client(conn, conf12)
-				if err = tlsConn.Handshake(); err != nil {
-					return nil, err
-				}
+		if err = tlsConn.Handshake(); err != nil {
+			// retry with TLS 1.2 for cameras that don't support TLS 1.3
+			log.Warn().Err(err).Str("addr", addr).Msg("[tcp] TLS 1.3 handshake failed, retrying with TLS 1.2")
+			_ = tlsConn.Close()
+			conn, err = dial(ctx, network, addr)
+			if err != nil {
+				log.Error().Err(err).Str("addr", addr).Msg("[tcp] reconnect failed before TLS 1.2 retry")
+				return nil, err
 			}
+			conf12 := conf.Clone()
+			conf12.MaxVersion = tls.VersionTLS12
+			tlsConn = tls.Client(conn, conf12)
+			if err = tlsConn.Handshake(); err != nil {
+				log.Error().Err(err).Str("addr", addr).Msg("[tcp] TLS 1.2 handshake failed")
+				return nil, err
+			}
+			log.Info().Str("addr", addr).Msg("[tcp] TLS 1.2 handshake succeeded")
+		}
 
 			if pconn, ok := ctx.Value(connKey).(*net.Conn); ok {
 				*pconn = tlsConn
