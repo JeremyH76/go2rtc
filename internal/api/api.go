@@ -61,12 +61,12 @@ func Init() {
 
 	Handler = http.DefaultServeMux // 4th
 
-	if cfg.Mod.Origin == "*" {
-		Handler = middlewareCORS(Handler) // 3rd
+	if cfg.Mod.Username != "" {
+		Handler = middlewareAuth(cfg.Mod.Username, cfg.Mod.Password, cfg.Mod.LocalAuth, Handler) // 3rd
 	}
 
-	if cfg.Mod.Username != "" {
-		Handler = middlewareAuth(cfg.Mod.Username, cfg.Mod.Password, cfg.Mod.LocalAuth, Handler) // 2nd
+	if cfg.Mod.Origin == "*" {
+		Handler = middlewareCORS(Handler) // 2nd
 	}
 
 	if log.Trace().Enabled() {
@@ -229,6 +229,10 @@ func middlewareCORS(next http.Handler) http.Handler {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
 		next.ServeHTTP(w, r)
 	})
 }
